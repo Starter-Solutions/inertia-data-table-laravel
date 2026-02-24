@@ -1,0 +1,1 @@
+# inertia-data-table-laravel

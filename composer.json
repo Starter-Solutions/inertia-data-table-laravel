@@ -1,0 +1,24 @@
+{
+    "name": "starter-solutions/inertia-data-table",
+    "description": "Laravel side of Starter Solutions Inertia Data Table",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "StarterSolutions\\InertiaDataTable\\": "src/"
+        },
+        "extra": {
+            "laravel": {
+                "providers": [
+                    "StarterSolutions\\InertiaDataTable\\InertiaDataTableServiceProvider"
+                ]
+            }
+        },
+        "minimum-stability": "stable",
+        "prefer-stable": true
+    }
+}

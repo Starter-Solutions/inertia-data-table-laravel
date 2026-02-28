@@ -17,7 +17,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
     {
         // publish config
         $this->publishes([
-            __DIR__.'/../config/inertia-data-table.php' => App::configPath('inertia-data-table.php'),
+            __DIR__.'/../config/inertia-data-table.php' => $this->app->configPath('inertia-data-table.php'),
         ], 'inertia-data-table-config');
 
         // Register the macros

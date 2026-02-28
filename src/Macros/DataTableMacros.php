@@ -13,7 +13,6 @@ use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
 class DataTableMacros
 {
     private const MACRO_NAME = 'dataTable';
-    private const CONFIG_NAME = 'inertia-data-table';
 
     /**
      * Register all the dataTable macros.
@@ -49,7 +48,7 @@ class DataTableMacros
             /** @var \Illuminate\Database\Eloquent\Builder $this */
             $query = $this;
             
-            $config = Config::get(self::CONFIG_NAME);
+            $config = Config::get('inertia-data-table');
 
             // apply sorting
             $sortBy     = $sortBy     ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
@@ -116,7 +115,7 @@ class DataTableMacros
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;
 
-            $config = Config::get(self::CONFIG_NAME);
+            $config = Config::get('inertia-data-table');
 
             // apply sorting
             $sortBy = $sortBy ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);

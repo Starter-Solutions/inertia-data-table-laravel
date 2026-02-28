@@ -6,7 +6,8 @@
     "require": {
         "php": "^8.2",
         "illuminate/support": "^10.0|^11.0|^12.0",
-        "illuminate/pagination": "^11.47"
+        "illuminate/pagination": "^11.47",
+        "illuminate/database": "^11.47"
     },
     "autoload": {
         "psr-4": {

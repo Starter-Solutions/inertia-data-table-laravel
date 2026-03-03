@@ -20,5 +20,8 @@
                 "StarterSolutions\\InertiaDataTable\\InertiaDataTableServiceProvider"
             ]
         }
+    },
+    "suggest": {
+        "@starter-solutions/inertia-data-table-vue": "Frontend components for Starter Solutions Inertia Data Table"
     }
 }

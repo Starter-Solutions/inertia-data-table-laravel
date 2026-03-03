@@ -4,6 +4,7 @@ namespace StarterSolutions\InertiaDataTable\Pagination;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 
 class SortablePaginator extends LengthAwarePaginator
 {
@@ -18,10 +19,10 @@ class SortablePaginator extends LengthAwarePaginator
      * @param  int  $total
      * @param  int  $perPage
      * @param  int|null  $currentPage
-     * @param  array  $options
      * @param  string|null  $sortBy
      * @param  bool  $descending
      * @param  bool  $all  Whether to fetch all items (ignoring pagination)
+     * @param  array  $options
      * @return void
      */
     public function __construct(
@@ -29,12 +30,12 @@ class SortablePaginator extends LengthAwarePaginator
         $total,
         $perPage,
         $currentPage = null,
-        $options = [],
         $sortBy = null,
         $descending = false,
-        $all = false
+        $all = false,
+        $options = []
     ) {
-        $this->sortBy     = $sortBy ?? 'id';
+        $this->sortBy     = $sortBy ?? Config::get('inertia-data-table.default_sort_by');
         $this->descending = $descending;
         $this->rawPerPage = $perPage;
 

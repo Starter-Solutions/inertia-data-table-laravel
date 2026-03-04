@@ -29,7 +29,7 @@ class DataTableMacros
          * @param  int|null  $page
          * @param  \Closure|int|null  $total
          * @param  string|null  $sortBy
-         * @param  bool  $descending
+         * @param  bool|null  $descending
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator
          *
@@ -100,7 +100,7 @@ class DataTableMacros
          * @param  string|null  $pageName
          * @param  int|null  $page
          * @param  string|null  $sortBy
-         * @param  bool  $descending
+         * @param  bool|null  $descending
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator    
          */

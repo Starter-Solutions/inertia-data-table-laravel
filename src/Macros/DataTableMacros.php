@@ -29,7 +29,7 @@ class DataTableMacros
          * @param  int|null  $page
          * @param  \Closure|int|null  $total
          * @param  string|null  $sortBy
-         * @param  bool  $descending
+         * @param  bool|null  $descending
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator
          *
@@ -43,29 +43,31 @@ class DataTableMacros
             $page = null, 
             $total = null, 
             $sortBy = null, 
-            $descending = false
+            $descending = null
         ): SortablePaginator  {
             /** @var \Illuminate\Database\Eloquent\Builder $this */
             $query = $this;
             
             $config = Config::get('inertia-data-table');
 
+            $session = Request::session()->get("inertia-data-table.{$tableKey}");
+
             // apply sorting
-            $sortBy     = $sortBy     ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
-            $descending = $descending ?? Request::boolean($config['descending_param'], false);
+            $sortBy     = $sortBy     ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
+            $descending = $descending ?? $session['descending'] ?? Request::boolean($config['descending_param'], false);
             $direction  = $descending ? 'desc' : 'asc';
             $query->orderBy($sortBy, $direction);
 
             // determine pagination parameters
             $pageName   ??= $config['page_name_param'];
             $total      = value($total) ?? $query->toBase()->getCountForPagination();
-            $perPage    = value($perPage, $total)  ?? Request::query($config['per_page_param'],  $config['default_per_page']);
+            $perPage    = value($perPage, $total)  ?? $session['perPage'] ?? Request::query($config['per_page_param'],  $config['default_per_page']);
             $all        = $perPage <= 0;
             if($all) {
                 // fetch all items (ignoring pagination)
                 $page = 1; // always page 1 when perPage <= 0 (i.e. "all")
             } else {
-                $page = $page ?: Paginator::resolveCurrentPage($pageName);
+                $page = $page ?? $session['page'] ?? Paginator::resolveCurrentPage($pageName);
                 $query = $query->forPage($page, $perPage);
             }
 
@@ -98,7 +100,7 @@ class DataTableMacros
          * @param  string|null  $pageName
          * @param  int|null  $page
          * @param  string|null  $sortBy
-         * @param  bool  $descending
+         * @param  bool|null  $descending
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator    
          */
@@ -110,29 +112,31 @@ class DataTableMacros
             $page = null, 
             $total = null, 
             $sortBy = null, 
-            $descending = false
+            $descending = null
         ): SortablePaginator{
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;
 
             $config = Config::get('inertia-data-table');
 
+            $session = Request::session()->get("inertia-data-table.{$tableKey}");
+
             // apply sorting
-            $sortBy = $sortBy ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
-            $descending = $descending ?? Request::boolean($config['descending_param'], false);
+            $sortBy = $sortBy ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
+            $descending = $descending ?? $session['descending'] ?? Request::boolean($config['descending_param'], false);
             $direction = $descending ? 'desc' : 'asc';
             $query->orderBy($sortBy, $direction);
 
             // determine pagination parameters
             $pageName = $pageName ?? $config['page_name_param'];
             $total = value($total) ?? $query->getCountForPagination();
-            $perPage = value($perPage, $total)  ?? Request::query($config['per_page_param'],  $config['default_per_page']);
+            $perPage = value($perPage, $total)  ?? $session['perPage'] ?? Request::query($config['per_page_param'],  $config['default_per_page']);
             $all = $perPage <= 0;
             if($all) {
                 // fetch all items (ignoring pagination)
                 $page = 1; // always page 1 when perPage <= 0 (i.e. "all")
             } else {
-                $page = $page ?: Paginator::resolveCurrentPage($pageName);
+                $page = $page ?? $session['page'] ?? Paginator::resolveCurrentPage($pageName);
                 $query = $query->forPage($page, $perPage);
             }
 

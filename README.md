@@ -29,6 +29,12 @@ Together they provide a structured, reusable approach to building sortable and p
 
 ---
 
+## 🚀 Installation
+
+```bash
+composer require starter-solutions/inertia-data-table
+```
+
 ## 🧠 Concept
 
 The package introduces a table key–based system:

@@ -15,8 +15,15 @@ class InertiaDataTableServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadRoutesFrom(__DIR__.'/../routes/inertia-data-table.php');
+
         Inertia::share('inertiaDataTable', function () {
             return [
+                'stateRoutes' => [
+                    'set'   => route('inertia-data-table.set'),
+                    'drop' => route('inertia-data-table.drop'),
+                    'dropAll' => route('inertia-data-table.drop.all'),
+                ],
                 'queryParams' => [
                     'perPage' => config('inertia-data-table.per_page_param', 'per_page'),
                     'sortBy' => config('inertia-data-table.sort_by_param', 'sort_by'),

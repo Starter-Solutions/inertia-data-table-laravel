@@ -15,8 +15,26 @@ class InertiaDataTableServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes/inertia-data-table.php');
+        $this->publishConfig();
+        $this->registerRoutes();
+        $this->shareConfigToFrontend();
+        $this->registerMacros();
+    }
 
+    private function publishConfig(): void
+    {
+        $this->publishes([
+            __DIR__.'/../config/inertia-data-table.php' => $this->app->configPath('inertia-data-table.php'),
+        ], 'inertia-data-table-config');
+    }
+
+    private function registerRoutes(): void
+    {
+        $this->loadRoutesFrom(__DIR__.'/../routes/inertia-data-table.php');
+    }
+
+    private function shareConfigToFrontend(): void
+    {
         Inertia::share('inertiaDataTable', function () {
             return [
                 'stateRoutes' => [
@@ -36,13 +54,10 @@ class InertiaDataTableServiceProvider extends ServiceProvider
                 ],
             ];
         });
+    }
 
-        // publish config
-        $this->publishes([
-            __DIR__.'/../config/inertia-data-table.php' => $this->app->configPath('inertia-data-table.php'),
-        ], 'inertia-data-table-config');
-
-        // Register the macros
+    private function registerMacros(): void
+    {
         (new DataTableMacros())->register();
     }
 }

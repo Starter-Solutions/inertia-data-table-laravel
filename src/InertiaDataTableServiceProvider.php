@@ -43,6 +43,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
                     'dropAll' => route('inertia-data-table.drop.all'),
                 ],
                 'queryParams' => [
+                    'tableKey' => config('inertia-data-table.table_key_param', 'tableKey'),
                     'perPage' => config('inertia-data-table.per_page_param', 'per_page'),
                     'sortBy' => config('inertia-data-table.sort_by_param', 'sort_by'),
                     'descending' => config('inertia-data-table.descending_param', 'descending'),

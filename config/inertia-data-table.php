@@ -19,6 +19,7 @@ return [
     | The request parameters that control pagination and sorting.
     |
     */
+    'table_key_param'   => 'tableKey',
     'per_page_param'    => 'per_page',
     'sort_by_param'     => 'sort_by',
     'descending_param'  => 'descending',

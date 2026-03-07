@@ -50,7 +50,12 @@ class DataTableMacros
             
             $config = Config::get('inertia-data-table');
 
-            $session = Request::session()->get("inertia-data-table.{$tableKey}");
+            $session = (Request::query($config['table_key_param']) === $tableKey) 
+                // if the current request has a matching tableKey, prioritize its query parameters over session values
+                ? null
+                // otherwise, use session values (if available) to maintain state across requests
+                : Request::session()->get("inertia-data-table.{$tableKey}")
+            ;
 
             // apply sorting
             $sortBy     = $sortBy     ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
@@ -119,7 +124,12 @@ class DataTableMacros
 
             $config = Config::get('inertia-data-table');
 
-            $session = Request::session()->get("inertia-data-table.{$tableKey}");
+            $session = (Request::query($config['table_key_param']) === $tableKey) 
+                // if the current request has a matching tableKey, prioritize its query parameters over session values
+                ? null
+                // otherwise, use session values (if available) to maintain state across requests
+                : Request::session()->get("inertia-data-table.{$tableKey}")
+            ;
 
             // apply sorting
             $sortBy = $sortBy ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);

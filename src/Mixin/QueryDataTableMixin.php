@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|\Closure  $perPage, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure  $perPage = null, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null)
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -21,7 +21,7 @@ class QueryDataTableMixin
          * Paginate the given query.
          *
          * @param  string  $tableKey
-         * @param  int|\Closure  $perPage
+         * @param  int|null|\Closure  $perPage
          * @param  string|\Illuminate\Contracts\Database\Query\Expression|array<string|\Illuminate\Contracts\Database\Query\Expression>  $columns
          * @param  string|null  $pageName
          * @param  int|null  $page
@@ -32,7 +32,7 @@ class QueryDataTableMixin
          */
         return function (
             $tableKey, 
-            $perPage, 
+            $perPage = null, 
             $columns = ['*'], 
             $pageName = null, 
             $page = null, 

@@ -2,9 +2,12 @@
 
 namespace StarterSolutions\InertiaDataTable;
 
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
-use StarterSolutions\InertiaDataTable\Macros\DataTableMacros;
+use StarterSolutions\InertiaDataTable\Mixin\EloquentDataTableMixin;
+use StarterSolutions\InertiaDataTable\Mixin\QueryDataTableMixin;
 
 class InertiaDataTableServiceProvider extends ServiceProvider
 {
@@ -18,7 +21,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
         $this->publishConfig();
         $this->registerRoutes();
         $this->shareConfigToFrontend();
-        $this->registerMacros();
+        $this->registerMixins();
     }
 
     private function publishConfig(): void
@@ -57,8 +60,9 @@ class InertiaDataTableServiceProvider extends ServiceProvider
         });
     }
 
-    private function registerMacros(): void
+    private function registerMixins(): void
     {
-        (new DataTableMacros())->register();
+        EloquentBuilder::mixin(new EloquentDataTableMixin());
+        QueryBuilder::mixin(new QueryDataTableMixin());
     }
 }

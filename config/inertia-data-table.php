@@ -16,7 +16,7 @@ return [
     | Query Parameter Names
     |--------------------------------------------------------------------------
     |
-    | The request parameters that control pagination and sorting.
+    | The request parameters that control pagination, sorting, and filtering.
     |
     */
     'table_key_param'   => 'tableKey',
@@ -24,6 +24,7 @@ return [
     'sort_by_param'     => 'sort_by',
     'descending_param'  => 'descending',
     'page_name_param'   => 'page',
+    'filter_param'      => 'filter',
 
     /*
     |--------------------------------------------------------------------------

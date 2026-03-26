@@ -51,6 +51,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
                     'sortBy' => config('inertia-data-table.sort_by_param', 'sort_by'),
                     'descending' => config('inertia-data-table.descending_param', 'descending'),
                     'pageName' => config('inertia-data-table.page_name_param', 'page'),
+                    'filter' => config('inertia-data-table.filter_param', 'filter'),
                 ],
                 'defaults' => [
                     'perPage' => config('inertia-data-table.default_per_page', 15),

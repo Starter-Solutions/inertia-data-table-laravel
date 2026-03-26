@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure  $perPage = null, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null)
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -27,6 +27,7 @@ class QueryDataTableMixin
          * @param  int|null  $page
          * @param  string|null  $sortBy
          * @param  bool|null  $descending
+         * @param  \Closure|null  $filterUsing
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator    
          */
@@ -38,7 +39,8 @@ class QueryDataTableMixin
             $page = null, 
             $total = null, 
             $sortBy = null, 
-            $descending = null
+            $descending = null,
+            $filterUsing = null
         ): SortablePaginator {
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;
@@ -51,6 +53,17 @@ class QueryDataTableMixin
                 // otherwise, use session values (if available) to maintain state across requests
                 : Request::session()->get("inertia-data-table.{$tableKey}")
             ;
+
+            // apply filtering (if provided)
+            if ($filterUsing) {
+                if (is_callable($filterUsing)) {
+                    $filter = $session['filter'] ?? Request::query($config['filter_param']);
+                    // dump($filter);
+                    $filterUsing($query, $filter);
+                } else {
+                    throw new \InvalidArgumentException("The filter argument must be a callable (e.g. a closure that accepts the query builder and filter array as parameters).");
+                }
+            }
 
             // apply sorting
             $sortBy = $sortBy ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);

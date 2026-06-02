@@ -10,6 +10,7 @@ class SortablePaginator extends LengthAwarePaginator
     protected string $sortBy;
     protected bool   $descending;
     protected int    $rawPerPage;
+    protected array  $additional = [];
 
     /**
      * Create a new sortable paginator instance.
@@ -21,6 +22,7 @@ class SortablePaginator extends LengthAwarePaginator
      * @param  string  $sortBy
      * @param  bool  $descending
      * @param  bool  $all  Whether to fetch all items (ignoring pagination)
+     * @param  array  $additional
      * @param  array  $options
      * @return void
      */
@@ -32,11 +34,13 @@ class SortablePaginator extends LengthAwarePaginator
         $sortBy,
         $descending = false,
         $all = false,
+        $additional = [],
         $options = []
     ) {
         $this->sortBy     = $sortBy;
         $this->descending = $descending;
         $this->rawPerPage = $perPage;
+        $this->additional = $additional;
 
         $perPage = $all ? $total : $perPage;
 
@@ -45,10 +49,28 @@ class SortablePaginator extends LengthAwarePaginator
 
     public function toArray(): array
     {
-        $meta = parent::toArray();
-        $meta['sort_by']    = $this->sortBy;
-        $meta['descending'] = $this->descending;
-        $meta['per_page']   = $this->rawPerPage;
-        return $meta;
+        $data = parent::toArray();
+
+        $data['sort_by']    = $this->sortBy;
+        $data['descending'] = $this->descending;
+        $data['per_page']   = $this->rawPerPage;
+
+        if ($this->additional !== []) {
+            $data['additional'] = $this->additional;
+        }
+
+        return $data;
+    }
+
+    public function additional(array $data): static
+    {
+        $this->additional = array_merge($this->additional, $data);
+
+        return $this;
+    }
+
+    public function getAdditional(): array
+    {
+        return $this->additional;
     }
 }

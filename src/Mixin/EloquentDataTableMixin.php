@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null, array  $additional)
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
@@ -28,6 +28,7 @@ class EloquentDataTableMixin
          * @param  string|null  $sortBy
          * @param  bool|null  $descending
          * @param  \Closure|null  $filterUsing
+         * @param  array  $additional
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator
          *
@@ -42,7 +43,8 @@ class EloquentDataTableMixin
             $total = null, 
             $sortBy = null, 
             $descending = null,
-            $filterUsing = null
+            $filterUsing = null,
+            $additional = [],
         ): SortablePaginator  {
             /** @var \Illuminate\Database\Eloquent\Builder $this */
             $query = $this;
@@ -87,8 +89,8 @@ class EloquentDataTableMixin
 
             $results = $total
                 ? $query->get($columns)
-                : $this->model->newCollection();
-                
+                : $query->model->newCollection();
+
             return new SortablePaginator(
                 items: $results,
                 total: $total,
@@ -97,6 +99,7 @@ class EloquentDataTableMixin
                 sortBy: $sortBy,
                 descending: $descending,
                 all: $all,
+                additional: $additional,
                 options: [
                     'path'     => Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,

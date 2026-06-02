@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = ['*'], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null, array  $additional)
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -28,6 +28,7 @@ class QueryDataTableMixin
          * @param  string|null  $sortBy
          * @param  bool|null  $descending
          * @param  \Closure|null  $filterUsing
+         * @param  array  $additional
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator    
          */
@@ -40,7 +41,8 @@ class QueryDataTableMixin
             $total = null, 
             $sortBy = null, 
             $descending = null,
-            $filterUsing = null
+            $filterUsing = null,
+            $additional = [],
         ): SortablePaginator {
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;
@@ -96,6 +98,7 @@ class QueryDataTableMixin
                 sortBy: $sortBy,
                 descending: $descending,
                 all: $all,
+                additional: $additional,
                 options: [
                     'path'     => Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,

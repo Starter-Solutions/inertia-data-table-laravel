@@ -5,7 +5,7 @@ namespace StarterSolutions\InertiaDataTable\Pagination;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-class SortablePaginator extends LengthAwarePaginator
+class SortableFilterPaginator extends LengthAwarePaginator
 {
     protected string $sortBy;
     protected bool   $descending;

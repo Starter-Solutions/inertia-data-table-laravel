@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-use StarterSolutions\InertiaDataTable\Pagination\SortablePaginator;
+use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null, array  $additional)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null, array  $additional = [])
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -30,7 +30,7 @@ class QueryDataTableMixin
          * @param  \Closure|null  $filterUsing
          * @param  array  $additional
          * 
-         * @return \StarterSolutions\InertiaDataTable\Pagination\SortablePaginator    
+         * @return \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator    
          */
         return function (
             $tableKey, 
@@ -43,7 +43,7 @@ class QueryDataTableMixin
             $descending = null,
             $filterUsing = null,
             $additional = [],
-        ): SortablePaginator {
+        ): SortableFilterPaginator {
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;
 
@@ -90,7 +90,7 @@ class QueryDataTableMixin
                 ? $query->get($columns)
                 : new Collection;
 
-            return new SortablePaginator(
+            return new SortableFilterPaginator(
                 items: $results,
                 total: $total,
                 perPage: $perPage,

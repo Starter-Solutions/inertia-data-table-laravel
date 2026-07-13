@@ -10,6 +10,7 @@ class SortableFilterPaginator extends LengthAwarePaginator
     protected string $sortBy;
     protected bool   $descending;
     protected int    $rawPerPage;
+    protected array  $filter = [];
     protected array  $additional = [];
 
     /**
@@ -22,6 +23,7 @@ class SortableFilterPaginator extends LengthAwarePaginator
      * @param  string  $sortBy
      * @param  bool  $descending
      * @param  bool  $all  Whether to fetch all items (ignoring pagination)
+     * @param  array  $filter
      * @param  array  $additional
      * @param  array  $options
      * @return void
@@ -34,12 +36,14 @@ class SortableFilterPaginator extends LengthAwarePaginator
         $sortBy,
         $descending = false,
         $all = false,
+        $filter = [],
         $additional = [],
         $options = []
     ) {
         $this->sortBy     = $sortBy;
         $this->descending = $descending;
         $this->rawPerPage = $perPage;
+        $this->filter = $filter;
         $this->additional = $additional;
 
         $perPage = $all ? $total : $perPage;
@@ -54,6 +58,10 @@ class SortableFilterPaginator extends LengthAwarePaginator
         $data['sort_by']    = $this->sortBy;
         $data['descending'] = $this->descending;
         $data['per_page']   = $this->rawPerPage;
+
+        if ($this->filter !== []) {
+            $data['filter'] = $this->filter;
+        }
 
         if ($this->additional !== []) {
             $data['additional'] = $this->additional;

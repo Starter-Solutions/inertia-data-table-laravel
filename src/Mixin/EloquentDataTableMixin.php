@@ -59,13 +59,15 @@ class EloquentDataTableMixin
             ;
 
             // apply filtering (if provided)
+            $filter = $session['filter'] ?? Request::query($config['filter_param']);
+            $filter = is_array($filter) ? $filter : [];
+
             if ($filterUsing) {
-                if (is_callable($filterUsing)) {
-                    $filter = $session['filter'] ?? Request::query($config['filter_param']);
-                    $filterUsing($query, $filter);
-                } else {
-                    throw new \InvalidArgumentException("The filter argument must be a callable (e.g. a closure that accepts the 'query' builder and 'filter' array as parameters).");
+                if (!is_callable($filterUsing)) {
+                    throw new \InvalidArgumentException("The filter argument must be a callable (e.g. a closure that accepts the query builder and filter array as parameters).");
                 }
+
+                $filterUsing($query, $filter);
             }
 
             // apply sorting
@@ -99,6 +101,7 @@ class EloquentDataTableMixin
                 sortBy: $sortBy,
                 descending: $descending,
                 all: $all,
+                filter: $filter,
                 additional: $additional,
                 options: [
                     'path'     => Paginator::resolveCurrentPath(),

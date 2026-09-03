@@ -56,6 +56,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
                 'defaults' => [
                     'perPage' => config('inertia-data-table.default_per_page', 15),
                     'sortBy' => config('inertia-data-table.default_sort_by', 'id'),
+                    'descending' => config('inertia-data-table.default_decending', true),
                 ],
             ];
         });

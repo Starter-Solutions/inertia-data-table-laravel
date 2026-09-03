@@ -77,7 +77,7 @@ class QueryDataTableMixin
             $descending = $session['descending']
                 ?? (Request::has($config['descending_param'])
                     ? Request::boolean($config['descending_param'])
-                    : ($defaultDescending ?? false));
+                    : ($defaultDescending ?? $config['default_decending']));
             $direction = $descending ? 'desc' : 'asc';
             $query->orderBy($sortBy, $direction);
 

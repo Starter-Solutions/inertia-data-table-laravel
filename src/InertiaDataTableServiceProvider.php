@@ -4,8 +4,10 @@ namespace StarterSolutions\InertiaDataTable;
 
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use StarterSolutions\InertiaDataTable\Mixin\CollectionDataTableMixin;
 use StarterSolutions\InertiaDataTable\Mixin\EloquentDataTableMixin;
 use StarterSolutions\InertiaDataTable\Mixin\QueryDataTableMixin;
 
@@ -66,5 +68,6 @@ class InertiaDataTableServiceProvider extends ServiceProvider
     {
         EloquentBuilder::mixin(new EloquentDataTableMixin());
         QueryBuilder::mixin(new QueryDataTableMixin());
+        Collection::mixin(new CollectionDataTableMixin());
     }
 }

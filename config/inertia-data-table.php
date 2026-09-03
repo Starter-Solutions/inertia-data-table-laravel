@@ -36,4 +36,5 @@ return [
     */
     'default_per_page'  => 15,
     'default_sort_by'   => 'id',
+    'default_decending' => true,
 ];

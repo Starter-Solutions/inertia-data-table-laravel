@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, int|null|\Closure $perPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $page = null, \Closure|int|null  $total = null, string|null  $sortBy = null, bool|null  $descending = null, \Closure|null  $filterUsing = null, array  $additional = [])
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, int|null|\Closure $defaultPerPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $defaultPage = null, \Closure|int|null  $total = null, string|null  $defaultSortBy = null, bool|null  $defaultDescending = null, \Closure|null  $filterUsing = null, array  $additional = [])
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -21,12 +21,12 @@ class QueryDataTableMixin
          * Paginate the given query.
          *
          * @param  string  $tableKey
-         * @param  int|null|\Closure  $perPage
+         * @param  int|null|\Closure  $defaultPerPage
          * @param  string|\Illuminate\Contracts\Database\Query\Expression|array<string|\Illuminate\Contracts\Database\Query\Expression>  $columns
          * @param  string|null  $pageName
-         * @param  int|null  $page
-         * @param  string|null  $sortBy
-         * @param  bool|null  $descending
+         * @param  int|null  $defaultPage
+         * @param  string|null  $defaultSortBy
+         * @param  bool|null  $defaultDescending
          * @param  \Closure|null  $filterUsing
          * @param  array  $additional
          * 
@@ -34,13 +34,13 @@ class QueryDataTableMixin
          */
         return function (
             $tableKey, 
-            $perPage = null, 
+            $defaultPerPage = null,
             $columns = ['*'], 
             $pageName = null, 
-            $page = null, 
+            $defaultPage = null,
             $total = null, 
-            $sortBy = null, 
-            $descending = null,
+            $defaultSortBy = null,
+            $defaultDescending = null,
             $filterUsing = null,
             $additional = [],
         ): SortableFilterPaginator {
@@ -69,21 +69,30 @@ class QueryDataTableMixin
             }
 
             // apply sorting
-            $sortBy = $sortBy ?? $session['sortBy'] ?? Request::query($config['sort_by_param'],   $config['default_sort_by']);
-            $descending = $descending ?? $session['descending'] ?? Request::boolean($config['descending_param'], false);
+            $sortBy = $session['sortBy']
+                ?? Request::query($config['sort_by_param'])
+                ?? $defaultSortBy
+                ?? $config['default_sort_by'];
+            $descending = $session['descending']
+                ?? (Request::has($config['descending_param'])
+                    ? Request::boolean($config['descending_param'])
+                    : ($defaultDescending ?? false));
             $direction = $descending ? 'desc' : 'asc';
             $query->orderBy($sortBy, $direction);
 
             // determine pagination parameters
             $pageName = $pageName ?? $config['page_name_param'];
             $total = value($total) ?? $query->getCountForPagination();
-            $perPage = value($perPage, $total)  ?? $session['perPage'] ?? Request::query($config['per_page_param'],  $config['default_per_page']);
+            $perPage = $session['perPage']
+                ?? Request::query($config['per_page_param'])
+                ?? value($defaultPerPage, $total)
+                ?? $config['default_per_page'];
             $all = $perPage <= 0;
             if($all) {
                 // fetch all items (ignoring pagination)
                 $page = 1; // always page 1 when perPage <= 0 (i.e. "all")
             } else {
-                $page = $page ?? $session['page'] ?? Paginator::resolveCurrentPage($pageName);
+                $page = $session['page'] ?? Paginator::resolveCurrentPage($pageName, $defaultPage);
                 $query = $query->forPage($page, $perPage);
             }
 

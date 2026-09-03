@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, int|null|\Closure $defaultPerPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $defaultPage = null, \Closure|int|null  $total = null, string|null  $defaultSortBy = null, bool|null  $defaultDescending = null, \Closure|null  $filterUsing = null, array  $additional = [])
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
  * 
  * @mixin \Illuminate\Database\Query\Builder
  */
@@ -21,28 +21,29 @@ class QueryDataTableMixin
          * Paginate the given query.
          *
          * @param  string  $tableKey
-         * @param  int|null|\Closure  $defaultPerPage
          * @param  string|\Illuminate\Contracts\Database\Query\Expression|array<string|\Illuminate\Contracts\Database\Query\Expression>  $columns
          * @param  string|null  $pageName
+         * @param  \Closure|int|null  $total
+         * @param  \Closure|null  $filterUsing
+         * @param  array  $additional
+         * @param  int|null|\Closure  $defaultPerPage
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
-         * @param  \Closure|null  $filterUsing
-         * @param  array  $additional
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator    
          */
         return function (
             $tableKey, 
-            $defaultPerPage = null,
             $columns = ['*'], 
             $pageName = null, 
-            $defaultPage = null,
             $total = null, 
-            $defaultSortBy = null,
-            $defaultDescending = null,
             $filterUsing = null,
             $additional = [],
+            $defaultPerPage = null,
+            $defaultPage = null,
+            $defaultSortBy = null,
+            $defaultDescending = null,
         ): SortableFilterPaginator {
             /** @var \Illuminate\Database\Query\Builder $this */
             $query  = $this;

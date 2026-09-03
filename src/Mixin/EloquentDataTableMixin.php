@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, int|null|\Closure $defaultPerPage = null, array|string  $columns = [], string|null  $pageName = null, int|null  $defaultPage = null, \Closure|int|null  $total = null, string|null  $defaultSortBy = null, bool|null  $defaultDescending = null, \Closure|null  $filterUsing = null, array  $additional = [])
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
@@ -20,15 +20,15 @@ class EloquentDataTableMixin
          * Paginate the given eloquent query.
          *
          * @param  string  $tableKey
-         * @param  int|null|\Closure  $defaultPerPage
          * @param  array|string  $columns
          * @param  string|null  $pageName
-         * @param  int|null  $defaultPage
          * @param  \Closure|int|null  $total
-         * @param  string|null  $defaultSortBy
-         * @param  bool|null  $defaultDescending
          * @param  \Closure|null  $filterUsing
          * @param  array  $additional
+         * @param  int|null|\Closure  $defaultPerPage
+         * @param  int|null  $defaultPage
+         * @param  string|null  $defaultSortBy
+         * @param  bool|null  $defaultDescending
          * 
          * @return \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator
          *
@@ -36,15 +36,15 @@ class EloquentDataTableMixin
          */
         return function (
             $tableKey, 
-            $defaultPerPage = null,
             $columns = ['*'], 
             $pageName = null, 
-            $defaultPage = null,
             $total = null, 
-            $defaultSortBy = null,
-            $defaultDescending = null,
             $filterUsing = null,
             $additional = [],
+            $defaultPerPage = null,
+            $defaultPage = null,
+            $defaultSortBy = null,
+            $defaultDescending = null,
         ): SortableFilterPaginator  {
             /** @var \Illuminate\Database\Eloquent\Builder $this */
             $query = $this;

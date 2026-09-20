@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 class SortableFilterPaginator extends LengthAwarePaginator
 {
-    protected string $sortBy;
+    protected ?string $sortBy;
     protected bool   $descending;
     protected int    $rawPerPage;
     protected array  $filter = [];
@@ -20,7 +20,7 @@ class SortableFilterPaginator extends LengthAwarePaginator
      * @param  int  $total
      * @param  int  $perPage
      * @param  int|null  $currentPage
-     * @param  string  $sortBy
+     * @param  string|null  $sortBy
      * @param  bool  $descending
      * @param  bool  $all  Whether to fetch all items (ignoring pagination)
      * @param  array  $filter

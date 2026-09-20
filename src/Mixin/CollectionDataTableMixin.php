@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Request;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, string|null $pageName = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, string|null $pageName = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null, array|null $allowedSorts = null)
  *
  * @mixin Collection
  */
@@ -31,6 +31,7 @@ class CollectionDataTableMixin
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
+         * @param  array<string>|null  $allowedSorts
          * @return SortableFilterPaginator
          *
          * @throws \InvalidArgumentException
@@ -44,6 +45,7 @@ class CollectionDataTableMixin
             $defaultPage = null,
             $defaultSortBy = null,
             $defaultDescending = null,
+            $allowedSorts = null,
         ): SortableFilterPaginator {
             /** @var Collection $this */
             $items = $this;
@@ -74,14 +76,20 @@ class CollectionDataTableMixin
                 }
             }
 
-            $sortBy = ($usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null))
+            $requestedSortBy = $usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null);
+            $sortBy = $requestedSortBy
                 ?? $defaultSortBy
                 ?? $config['default_sort_by'];
+            if ($allowedSorts !== null && $requestedSortBy !== null && ! in_array($requestedSortBy, $allowedSorts, true)) {
+                $sortBy = $defaultSortBy;
+            }
             $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
                     : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
 
-            $items = ($descending ? $items->sortByDesc($sortBy) : $items->sortBy($sortBy))->values();
+            if ($sortBy !== null) {
+                $items = ($descending ? $items->sortByDesc($sortBy) : $items->sortBy($sortBy))->values();
+            }
             $total = $items->count();
 
             $pageName = $pageName ?? $config['page_name_param'];

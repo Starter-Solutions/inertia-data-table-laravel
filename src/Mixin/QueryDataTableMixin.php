@@ -119,6 +119,7 @@ class QueryDataTableMixin
                 all: $all,
                 filter: $filter,
                 additional: $additional,
+                allowedSorts: $allowedSorts,
                 options: [
                     'path' => Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,

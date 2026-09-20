@@ -11,7 +11,7 @@ use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 /**
  * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, string|null $pageName = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
  *
- * @mixin \Illuminate\Support\Collection
+ * @mixin Collection
  */
 class CollectionDataTableMixin
 {
@@ -31,7 +31,7 @@ class CollectionDataTableMixin
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
-         * @return \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator
+         * @return SortableFilterPaginator
          *
          * @throws \InvalidArgumentException
          */
@@ -45,16 +45,19 @@ class CollectionDataTableMixin
             $defaultSortBy = null,
             $defaultDescending = null,
         ): SortableFilterPaginator {
-            /** @var \Illuminate\Support\Collection $this */
+            /** @var Collection $this */
             $items = $this;
 
             $config = Config::get('inertia-data-table');
 
-            $session = (Request::query($config['table_key_param']) === $tableKey)
-                ? null
-                : Request::session()->get("inertia-data-table.{$tableKey}");
+            $usesQueryState = Request::query($config['table_key_param']) === $tableKey;
+            $session = $usesQueryState
+                ? []
+                : (Request::session()->get("inertia-data-table.{$tableKey}") ?? []);
 
-            $filter = $session['filter'] ?? Request::query($config['filter_param']);
+            $filter = $usesQueryState
+                ? Request::query($config['filter_param'])
+                : ($session['filter'] ?? []);
             $filter = is_array($filter) ? $filter : [];
 
             if ($filterUsing) {
@@ -71,27 +74,26 @@ class CollectionDataTableMixin
                 }
             }
 
-            $sortBy = $session['sortBy']
-                ?? Request::query($config['sort_by_param'])
+            $sortBy = ($usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null))
                 ?? $defaultSortBy
                 ?? $config['default_sort_by'];
-            $descending = $session['descending']
-                ?? (Request::has($config['descending_param'])
+            $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
-                    : ($defaultDescending ?? $config['default_decending']));
+                    : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
 
             $items = ($descending ? $items->sortByDesc($sortBy) : $items->sortBy($sortBy))->values();
             $total = $items->count();
 
             $pageName = $pageName ?? $config['page_name_param'];
-            $perPage = $session['perPage']
-                ?? Request::query($config['per_page_param'])
+            $perPage = ($usesQueryState ? Request::query($config['per_page_param']) : ($session['perPage'] ?? null))
                 ?? value($defaultPerPage, $total)
                 ?? $config['default_per_page'];
             $all = $perPage <= 0;
             $page = $all
                 ? 1
-                : ($session['page'] ?? Paginator::resolveCurrentPage($pageName, $defaultPage));
+                : ($usesQueryState
+                    ? Paginator::resolveCurrentPage($pageName, $defaultPage)
+                    : ($session['page'] ?? $defaultPage ?? 1));
             $results = $all ? $items : $items->forPage($page, $perPage)->values();
 
             return new SortableFilterPaginator(

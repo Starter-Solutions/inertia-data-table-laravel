@@ -2,15 +2,16 @@
 
 namespace StarterSolutions\InertiaDataTable\Mixin;
 
-use Illuminate\Support\Facades\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Request;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
  * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
- * 
- * @mixin \Illuminate\Database\Eloquent\Builder
+ *
+ * @mixin Builder
  */
 class EloquentDataTableMixin
 {
@@ -29,72 +30,70 @@ class EloquentDataTableMixin
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
-         * 
-         * @return \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator
+         * @return SortableFilterPaginator
          *
          * @throws \InvalidArgumentException
          */
         return function (
-            $tableKey, 
-            $columns = ['*'], 
-            $pageName = null, 
-            $total = null, 
+            $tableKey,
+            $columns = ['*'],
+            $pageName = null,
+            $total = null,
             $filterUsing = null,
             $additional = [],
             $defaultPerPage = null,
             $defaultPage = null,
             $defaultSortBy = null,
             $defaultDescending = null,
-        ): SortableFilterPaginator  {
-            /** @var \Illuminate\Database\Eloquent\Builder $this */
+        ): SortableFilterPaginator {
+            /** @var Builder $this */
             $query = $this;
-            
+
             $config = Config::get('inertia-data-table');
 
-            $session = (Request::query($config['table_key_param']) === $tableKey) 
-                // if the current request has a matching tableKey, prioritize its query parameters over session values
-                ? null
-                // otherwise, use session values (if available) to maintain state across requests
-                : Request::session()->get("inertia-data-table.{$tableKey}")
-            ;
+            $usesQueryState = Request::query($config['table_key_param']) === $tableKey;
+            $session = $usesQueryState
+                ? []
+                : (Request::session()->get("inertia-data-table.{$tableKey}") ?? []);
 
             // apply filtering (if provided)
-            $filter = $session['filter'] ?? Request::query($config['filter_param']);
+            $filter = $usesQueryState
+                ? Request::query($config['filter_param'])
+                : ($session['filter'] ?? []);
             $filter = is_array($filter) ? $filter : [];
 
             if ($filterUsing) {
-                if (!is_callable($filterUsing)) {
-                    throw new \InvalidArgumentException("The filter argument must be a callable (e.g. a closure that accepts the query builder and filter array as parameters).");
+                if (! is_callable($filterUsing)) {
+                    throw new \InvalidArgumentException('The filter argument must be a callable (e.g. a closure that accepts the query builder and filter array as parameters).');
                 }
 
                 $filterUsing($query, $filter);
             }
 
             // apply sorting
-            $sortBy = $session['sortBy']
-                ?? Request::query($config['sort_by_param'])
+            $sortBy = ($usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null))
                 ?? $defaultSortBy
                 ?? $config['default_sort_by'];
-            $descending = $session['descending']
-                ?? (Request::has($config['descending_param'])
+            $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
-                    : ($defaultDescending ?? $config['default_decending']));
-            $direction  = $descending ? 'desc' : 'asc';
+                    : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
+            $direction = $descending ? 'desc' : 'asc';
             $query->orderBy($sortBy, $direction);
 
             // determine pagination parameters
-            $pageName   ??= $config['page_name_param'];
-            $total      = value($total) ?? $query->toBase()->getCountForPagination();
-            $perPage = $session['perPage']
-                ?? Request::query($config['per_page_param'])
+            $pageName ??= $config['page_name_param'];
+            $total = value($total) ?? $query->toBase()->getCountForPagination();
+            $perPage = ($usesQueryState ? Request::query($config['per_page_param']) : ($session['perPage'] ?? null))
                 ?? value($defaultPerPage, $total)
                 ?? $config['default_per_page'];
-            $all        = $perPage <= 0;
-            if($all) {
+            $all = $perPage <= 0;
+            if ($all) {
                 // fetch all items (ignoring pagination)
                 $page = 1; // always page 1 when perPage <= 0 (i.e. "all")
             } else {
-                $page = $session['page'] ?? Paginator::resolveCurrentPage($pageName, $defaultPage);
+                $page = $usesQueryState
+                    ? Paginator::resolveCurrentPage($pageName, $defaultPage)
+                    : ($session['page'] ?? $defaultPage ?? 1);
                 $query = $query->forPage($page, $perPage);
             }
 
@@ -113,9 +112,9 @@ class EloquentDataTableMixin
                 filter: $filter,
                 additional: $additional,
                 options: [
-                    'path'     => Paginator::resolveCurrentPath(),
+                    'path' => Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,
-                    'query'    => Request::query(),
+                    'query' => Request::query(),
                 ]
             );
         };

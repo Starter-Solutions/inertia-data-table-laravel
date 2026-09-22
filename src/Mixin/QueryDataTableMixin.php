@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Request;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null, array|null $allowedSorts = null)
  *
  * @mixin Builder
  */
@@ -32,6 +32,7 @@ class QueryDataTableMixin
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
+         * @param  array<string>|null  $allowedSorts
          * @return SortableFilterPaginator
          */
         return function (
@@ -45,6 +46,7 @@ class QueryDataTableMixin
             $defaultPage = null,
             $defaultSortBy = null,
             $defaultDescending = null,
+            $allowedSorts = null,
         ): SortableFilterPaginator {
             /** @var Builder $this */
             $query = $this;
@@ -71,14 +73,20 @@ class QueryDataTableMixin
             }
 
             // apply sorting
-            $sortBy = ($usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null))
-                ?? $defaultSortBy
-                ?? $config['default_sort_by'];
+            $requestedSortBy = $usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null);
+            $sortBy = $requestedSortBy !== null
+                ? (($allowedSorts === null || in_array($requestedSortBy, $allowedSorts, true)) ? $requestedSortBy : $defaultSortBy)
+                : ($defaultSortBy ?? $config['default_sort_by']);
+            if ($allowedSorts !== null && $sortBy !== null && ! in_array($sortBy, $allowedSorts, true)) {
+                $sortBy = null;
+            }
             $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
                     : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
-            $direction = $descending ? 'desc' : 'asc';
-            $query->orderBy($sortBy, $direction);
+            if ($sortBy !== null) {
+                $direction = $descending ? 'desc' : 'asc';
+                $query->orderBy($sortBy, $direction);
+            }
 
             // determine pagination parameters
             $pageName = $pageName ?? $config['page_name_param'];
@@ -111,6 +119,7 @@ class QueryDataTableMixin
                 all: $all,
                 filter: $filter,
                 additional: $additional,
+                allowedSorts: $allowedSorts,
                 options: [
                     'path' => Paginator::resolveCurrentPath(),
                     'pageName' => $pageName,

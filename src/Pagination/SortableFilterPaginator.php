@@ -7,11 +7,12 @@ use Illuminate\Support\Collection;
 
 class SortableFilterPaginator extends LengthAwarePaginator
 {
-    protected string $sortBy;
+    protected ?string $sortBy;
     protected bool   $descending;
     protected int    $rawPerPage;
     protected array  $filter = [];
     protected array  $additional = [];
+    protected array  $allowedSorts;
 
     /**
      * Create a new sortable paginator instance.
@@ -20,12 +21,13 @@ class SortableFilterPaginator extends LengthAwarePaginator
      * @param  int  $total
      * @param  int  $perPage
      * @param  int|null  $currentPage
-     * @param  string  $sortBy
+     * @param  string|null  $sortBy
      * @param  bool  $descending
      * @param  bool  $all  Whether to fetch all items (ignoring pagination)
      * @param  array  $filter
      * @param  array  $additional
      * @param  array  $options
+     * @param  array<string>|null  $allowedSorts
      * @return void
      */
     public function __construct(
@@ -33,18 +35,20 @@ class SortableFilterPaginator extends LengthAwarePaginator
         $total,
         $perPage,
         $currentPage = null,
-        $sortBy,
+        $sortBy = null,
         $descending = false,
         $all = false,
         $filter = [],
         $additional = [],
-        $options = []
+        $options = [],
+        $allowedSorts = null
     ) {
         $this->sortBy     = $sortBy;
         $this->descending = $descending;
         $this->rawPerPage = $perPage;
         $this->filter = $filter;
         $this->additional = $additional;
+        $this->allowedSorts = $allowedSorts ?? [];
 
         $perPage = $all ? $total : $perPage;
 
@@ -58,6 +62,7 @@ class SortableFilterPaginator extends LengthAwarePaginator
         $data['sort_by']    = $this->sortBy;
         $data['descending'] = $this->descending;
         $data['per_page']   = $this->rawPerPage;
+        $data['allowed_sorts'] = $this->allowedSorts;
 
         if ($this->filter !== []) {
             $data['filter'] = $this->filter;
@@ -80,5 +85,10 @@ class SortableFilterPaginator extends LengthAwarePaginator
     public function getAdditional(): array
     {
         return $this->additional;
+    }
+
+    public function getAllowedSorts(): array
+    {
+        return $this->allowedSorts;
     }
 }

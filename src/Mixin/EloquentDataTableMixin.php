@@ -3,9 +3,11 @@
 namespace StarterSolutions\InertiaDataTable\Mixin;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
+use StarterSolutions\InertiaDataTable\Attributes\AllowedSorts;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
 
 /**
@@ -52,6 +54,13 @@ class EloquentDataTableMixin
             $query = $this;
 
             $config = Config::get('inertia-data-table');
+
+            /** @var Model $model */
+            $model = $query->getModel();
+
+            if ($allowedSorts === null) {
+                $allowedSorts = AllowedSorts::resolve($model);
+            }
 
             $usesQueryState = Request::query($config['table_key_param']) === $tableKey;
             $session = $usesQueryState
@@ -107,7 +116,7 @@ class EloquentDataTableMixin
 
             $results = $total
                 ? $query->get($columns)
-                : $query->model->newCollection();
+                : $model->newCollection();
 
             return new SortableFilterPaginator(
                 items: $results,

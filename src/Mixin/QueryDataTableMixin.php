@@ -74,11 +74,11 @@ class QueryDataTableMixin
 
             // apply sorting
             $requestedSortBy = $usesQueryState ? Request::query($config['sort_by_param']) : ($session['sortBy'] ?? null);
-            $sortBy = $requestedSortBy
-                ?? $defaultSortBy
-                ?? $config['default_sort_by'];
-            if ($allowedSorts !== null && $requestedSortBy !== null && ! in_array($requestedSortBy, $allowedSorts, true)) {
-                $sortBy = $defaultSortBy;
+            $sortBy = $requestedSortBy !== null
+                ? (($allowedSorts === null || in_array($requestedSortBy, $allowedSorts, true)) ? $requestedSortBy : $defaultSortBy)
+                : ($defaultSortBy ?? $config['default_sort_by']);
+            if ($allowedSorts !== null && $sortBy !== null && ! in_array($sortBy, $allowedSorts, true)) {
+                $sortBy = null;
             }
             $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])

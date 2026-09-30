@@ -29,6 +29,27 @@ Together they provide a structured, reusable approach to building sortable and p
 
 ---
 
+## Sorting by relation columns
+
+Eloquent tables can sort by a column from a directly related model. Eager load the relation and explicitly allow the dot-notated key:
+
+```php
+$users = User::query()
+    ->with('profile')
+    ->dataTable(
+        tableKey: 'users',
+        allowedSorts: [
+            'id',
+            'profile.display_name',
+            'User.profile.display_name',
+        ],
+    );
+```
+
+Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` are supported. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table. Relation keys must be listed in `allowedSorts` (or the model's `#[AllowedSorts]` attribute).
+
+---
+
 ## 🚀 Installation
 
 ```bash

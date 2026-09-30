@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
 use StarterSolutions\InertiaDataTable\Attributes\AllowedSorts;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
+use StarterSolutions\InertiaDataTable\Support\EloquentSort;
 
 /**
  * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null, array|null $allowedSorts = null)
@@ -94,7 +95,7 @@ class EloquentDataTableMixin
                     : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
             if ($sortBy !== null) {
                 $direction = $descending ? 'desc' : 'asc';
-                $query->orderBy($sortBy, $direction);
+                EloquentSort::apply($query, $model, $sortBy, $direction, $allowedSorts !== null);
             }
 
             // determine pagination parameters

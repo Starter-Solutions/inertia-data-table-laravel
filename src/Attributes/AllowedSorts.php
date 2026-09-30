@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use ReflectionClass;
+use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 class AllowedSorts
@@ -77,12 +78,19 @@ class AllowedSorts
                 if (is_int($key)) {
                     $columns[] = "{$relationPath}.{$column}";
                 } else {
-                    $columns["{$relationPath}.{$key}"] = "{$relationPath}.{$column}";
+                    $columns["{$relationPath}.{$key}"] = self::isCallbackClass($column)
+                        ? $column
+                        : "{$relationPath}.{$column}";
                 }
             }
         }
 
         return $columns;
+    }
+
+    private static function isCallbackClass(string $definition): bool
+    {
+        return class_exists($definition) && is_subclass_of($definition, SortCallback::class);
     }
 
     private static function relatedModel(Model $model, string $relationPath): Model

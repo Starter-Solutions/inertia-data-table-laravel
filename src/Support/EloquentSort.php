@@ -6,6 +6,10 @@ use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
 use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
@@ -13,6 +17,9 @@ use Throwable;
 
 class EloquentSort
 {
+    /** @var array<string, bool> */
+    private static array $columnExists = [];
+
     /**
      * @param  array<int|string, string|Closure>|null  $definitions
      * @return array<string>|null
@@ -26,9 +33,10 @@ class EloquentSort
         $keys = [];
 
         foreach ($definitions as $key => $definition) {
-            if (is_int($key) && $definition instanceof Closure) {
+            if (is_int($key) && ($definition instanceof Closure || self::isCallbackClass($definition))) {
                 Log::warning('Inertia Data Table ignored an unkeyed callback sort.', [
                     'reason' => 'callback_sort_requires_string_key',
+                    'callback' => is_string($definition) ? $definition : Closure::class,
                 ]);
 
                 continue;
@@ -95,16 +103,14 @@ class EloquentSort
             return true;
         }
 
-        if (! $resolveRelations) {
-            $query->orderBy($sortBy, $direction);
-
-            return true;
-        }
-
         $segments = explode('.', $sortBy);
         $modelName = class_basename($model);
 
         if (count($segments) > 1 && strcasecmp($segments[0], $modelName) === 0) {
+            array_shift($segments);
+        }
+
+        if (count($segments) > 1 && $segments[0] === $model->getTable()) {
             array_shift($segments);
         }
 
@@ -120,27 +126,88 @@ class EloquentSort
             return true;
         }
 
-        if (count($segments) !== 2) {
-            return self::logInvalidSort($model, $sortBy, 'unsupported_relation_depth', $context);
+        if (! $resolveRelations) {
+            return self::logInvalidSort($model, $sortBy, 'relation_sort_requires_allowlist', $context);
         }
 
-        [$relationName, $column] = $segments;
+        $column = array_pop($segments);
+        $relationQuery = self::relationValueQuery(
+            $query,
+            $model,
+            $segments,
+            $column,
+            $sortBy,
+            $context,
+        );
 
-        if (! method_exists($model, $relationName)) {
-            return self::logInvalidSort($model, $sortBy, 'relation_not_found', $context, [
+        if ($relationQuery === false) {
+            return false;
+        }
+
+        $query->orderBy($relationQuery->limit(1), $direction);
+
+        return true;
+    }
+
+    /**
+     * @param  array<string>  $relations
+     */
+    private static function relationValueQuery(
+        Builder $parentQuery,
+        Model $parentModel,
+        array $relations,
+        string $column,
+        string $sortBy,
+        array $context,
+    ): Builder|false {
+        $relationName = array_shift($relations);
+
+        if ($relationName === null || ! method_exists($parentModel, $relationName)) {
+            return self::logInvalidSort($parentModel, $sortBy, 'relation_not_found', $context, [
                 'relation' => $relationName,
             ]);
         }
 
-        $relation = Relation::noConstraints(fn () => $model->{$relationName}());
+        $relation = Relation::noConstraints(fn () => $parentModel->{$relationName}());
 
         if (! $relation instanceof Relation) {
-            return self::logInvalidSort($model, $sortBy, 'method_is_not_relation', $context, [
+            return self::logInvalidSort($parentModel, $sortBy, 'method_is_not_relation', $context, [
                 'relation' => $relationName,
+            ]);
+        }
+
+        if (! self::isSingularRelation($relation)) {
+            return self::logInvalidSort($parentModel, $sortBy, 'unsupported_relation_type', $context, [
+                'relation' => $relationName,
+                'relation_type' => $relation::class,
             ]);
         }
 
         $related = $relation->getRelated();
+
+        $relationQuery = $relation->getRelationExistenceQuery(
+            $related->newQuery(),
+            $parentQuery,
+        )->mergeConstraintsFrom($relation->getQuery());
+
+        if ($relations !== []) {
+            $nestedQuery = self::relationValueQuery(
+                $relationQuery,
+                $related,
+                $relations,
+                $column,
+                $sortBy,
+                $context,
+            );
+
+            if ($nestedQuery === false) {
+                return false;
+            }
+
+            return $relationQuery
+                ->select([])
+                ->selectSub($nestedQuery->limit(1), 'inertia_data_table_sort_value');
+        }
 
         if (! self::columnExists($related, $column)) {
             return self::logInvalidSort($related, $sortBy, 'related_column_not_found', $context, [
@@ -149,20 +216,35 @@ class EloquentSort
             ]);
         }
 
-        $relationQuery = $relation->getRelationExistenceQuery(
-            $related->newQuery(),
-            $query,
-            [$related->qualifyColumn($column)],
-        );
-
-        $query->orderBy($relationQuery->limit(1), $direction);
-
-        return true;
+        return $relationQuery->select($related->qualifyColumn($column));
     }
 
     private static function columnExists(Model $model, string $column): bool
     {
-        return $model->getConnection()->getSchemaBuilder()->hasColumn($model->getTable(), $column);
+        $cacheKey = implode(':', [
+            spl_object_id($model->getConnection()),
+            $model->getTable(),
+            $column,
+        ]);
+
+        return self::$columnExists[$cacheKey] ??= $model->getConnection()
+            ->getSchemaBuilder()
+            ->hasColumn($model->getTable(), $column);
+    }
+
+    private static function isCallbackClass(string|Closure $definition): bool
+    {
+        return is_string($definition)
+            && class_exists($definition)
+            && is_subclass_of($definition, SortCallback::class);
+    }
+
+    private static function isSingularRelation(Relation $relation): bool
+    {
+        return $relation instanceof BelongsTo
+            || $relation instanceof HasOne
+            || $relation instanceof HasOneThrough
+            || $relation instanceof MorphOne;
     }
 
     private static function logInvalidSort(

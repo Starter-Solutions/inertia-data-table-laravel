@@ -79,6 +79,7 @@ class EloquentSort
         }
 
         if (count($segments) === 1) {
+            self::assertColumnExists($model, $segments[0], $sortBy);
             $query->orderBy($segments[0], $direction);
 
             return;
@@ -103,6 +104,7 @@ class EloquentSort
         }
 
         $related = $relation->getRelated();
+        self::assertColumnExists($related, $column, $sortBy);
         $relationQuery = $relation->getRelationExistenceQuery(
             $related->newQuery(),
             $query,
@@ -110,5 +112,16 @@ class EloquentSort
         );
 
         $query->orderBy($relationQuery->limit(1), $direction);
+    }
+
+    private static function assertColumnExists(Model $model, string $column, string $sortBy): void
+    {
+        if ($model->getConnection()->getSchemaBuilder()->hasColumn($model->getTable(), $column)) {
+            return;
+        }
+
+        $modelClass = $model::class;
+
+        throw new InvalidArgumentException("The column [{$column}] used by sort [{$sortBy}] does not exist on [{$modelClass}].");
     }
 }

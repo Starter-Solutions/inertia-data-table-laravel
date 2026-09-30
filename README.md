@@ -74,6 +74,8 @@ User::query()->dataTable(
 
 Callbacks must use a string key. The callback key—not its implementation—is exposed through `allowed_sorts`.
 
+Before applying a regular or relation-column sort, the package verifies that the target column exists. A missing column throws an `InvalidArgumentException` with the sort key, column, and model class instead of relying on database-specific SQL behavior.
+
 ---
 
 ## 🚀 Installation

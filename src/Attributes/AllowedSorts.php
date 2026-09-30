@@ -11,14 +11,14 @@ use ReflectionClass;
 #[Attribute(Attribute::TARGET_CLASS)]
 class AllowedSorts
 {
-    /** @var array<class-string, array<string>|null> */
+    /** @var array<class-string, array<int|string, string>|null> */
     private static array $resolved = [];
 
-    /** @var array<string> */
+    /** @var array<int|string, string> */
     public array $columns;
 
     /**
-     * @param  array<string>|string  ...$columns
+     * @param  array<int|string, string>|string  ...$columns
      */
     public function __construct(array|string ...$columns)
     {
@@ -27,7 +27,7 @@ class AllowedSorts
 
     /**
      * @param  object|class-string  $model
-     * @return array<string>|null
+     * @return array<int|string, string>|null
      */
     public static function resolve(object|string $model): ?array
     {
@@ -54,7 +54,7 @@ class AllowedSorts
      * Resolve the model's allowed sorts and add the declared sorts of eager
      * loaded relations using dot notation.
      *
-     * @return array<string>|null
+     * @return array<int|string, string>|null
      */
     public static function resolveForQuery(Builder $query): ?array
     {
@@ -73,12 +73,16 @@ class AllowedSorts
                 continue;
             }
 
-            foreach ($relatedColumns as $column) {
-                $columns[] = "{$relationPath}.{$column}";
+            foreach ($relatedColumns as $key => $column) {
+                if (is_int($key)) {
+                    $columns[] = "{$relationPath}.{$column}";
+                } else {
+                    $columns["{$relationPath}.{$key}"] = "{$relationPath}.{$column}";
+                }
             }
         }
 
-        return array_values(array_unique($columns));
+        return $columns;
     }
 
     private static function relatedModel(Model $model, string $relationPath): Model

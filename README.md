@@ -47,6 +47,33 @@ The resolved sort keys are `id`, `name`, `profile.display_name`, and `profile.ci
 
 Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` can be used when explicitly allowed. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table.
 
+### Accessors and custom sorts
+
+An accessor can be mapped to the database column that represents its sortable value:
+
+```php
+#[AllowedSorts([
+    'id',
+    'display_name' => 'name',
+])]
+class User extends Model {}
+```
+
+The frontend uses `display_name`, while the query orders by `name`. For computed values that need a custom SQL expression, pass a keyed callback:
+
+```php
+User::query()->dataTable(
+    tableKey: 'users',
+    allowedSorts: [
+        'name',
+        'name_length' => fn (Builder $query, string $direction) =>
+            $query->orderByRaw("length(name) {$direction}"),
+    ],
+);
+```
+
+Callbacks must use a string key. The callback key—not its implementation—is exposed through `allowed_sorts`.
+
 ---
 
 ## 🚀 Installation

@@ -2,6 +2,7 @@
 
 namespace StarterSolutions\InertiaDataTable\Support;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -9,6 +10,41 @@ use InvalidArgumentException;
 
 class EloquentSort
 {
+    /**
+     * @param  array<int|string, string|Closure>|null  $definitions
+     * @return array<string>|null
+     */
+    public static function keys(?array $definitions): ?array
+    {
+        if ($definitions === null) {
+            return null;
+        }
+
+        $keys = [];
+
+        foreach ($definitions as $key => $definition) {
+            if (is_int($key) && $definition instanceof Closure) {
+                throw new InvalidArgumentException('Callback sorts must have a string key.');
+            }
+
+            $keys[] = is_int($key) ? $definition : $key;
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param  array<int|string, string|Closure>|null  $definitions
+     */
+    public static function definition(?array $definitions, string $key): string|Closure
+    {
+        if ($definitions === null || ! array_key_exists($key, $definitions)) {
+            return $key;
+        }
+
+        return $definitions[$key];
+    }
+
     /**
      * Apply a regular column sort or a sort on a directly related model.
      *
@@ -19,10 +55,16 @@ class EloquentSort
     public static function apply(
         Builder $query,
         Model $model,
-        string $sortBy,
+        string|Closure $sortBy,
         string $direction,
         bool $resolveRelations = true,
     ): void {
+        if ($sortBy instanceof Closure) {
+            $sortBy($query, $direction);
+
+            return;
+        }
+
         if (! $resolveRelations) {
             $query->orderBy($sortBy, $direction);
 

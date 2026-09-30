@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
 
 class EloquentSort
 {
@@ -24,7 +24,11 @@ class EloquentSort
 
         foreach ($definitions as $key => $definition) {
             if (is_int($key) && $definition instanceof Closure) {
-                throw new InvalidArgumentException('Callback sorts must have a string key.');
+                Log::warning('Inertia Data Table ignored an unkeyed callback sort.', [
+                    'reason' => 'callback_sort_requires_string_key',
+                ]);
+
+                continue;
             }
 
             $keys[] = is_int($key) ? $definition : $key;
@@ -58,17 +62,18 @@ class EloquentSort
         string|Closure $sortBy,
         string $direction,
         bool $resolveRelations = true,
-    ): void {
+        array $context = [],
+    ): bool {
         if ($sortBy instanceof Closure) {
             $sortBy($query, $direction);
 
-            return;
+            return true;
         }
 
         if (! $resolveRelations) {
             $query->orderBy($sortBy, $direction);
 
-            return;
+            return true;
         }
 
         $segments = explode('.', $sortBy);
@@ -79,32 +84,46 @@ class EloquentSort
         }
 
         if (count($segments) === 1) {
-            self::assertColumnExists($model, $segments[0], $sortBy);
+            if (! self::columnExists($model, $segments[0])) {
+                return self::logInvalidSort($model, $sortBy, 'column_not_found', $context, [
+                    'column' => $segments[0],
+                ]);
+            }
+
             $query->orderBy($segments[0], $direction);
 
-            return;
+            return true;
         }
 
         if (count($segments) !== 2) {
-            throw new InvalidArgumentException("The sort [{$sortBy}] must reference a column or a direct relation column.");
+            return self::logInvalidSort($model, $sortBy, 'unsupported_relation_depth', $context);
         }
 
         [$relationName, $column] = $segments;
 
         if (! method_exists($model, $relationName)) {
-            $modelClass = $model::class;
-
-            throw new InvalidArgumentException("The relation [{$relationName}] used by sort [{$sortBy}] does not exist on [{$modelClass}].");
+            return self::logInvalidSort($model, $sortBy, 'relation_not_found', $context, [
+                'relation' => $relationName,
+            ]);
         }
 
         $relation = Relation::noConstraints(fn () => $model->{$relationName}());
 
         if (! $relation instanceof Relation) {
-            throw new InvalidArgumentException("The method [{$relationName}] used by sort [{$sortBy}] is not an Eloquent relation.");
+            return self::logInvalidSort($model, $sortBy, 'method_is_not_relation', $context, [
+                'relation' => $relationName,
+            ]);
         }
 
         $related = $relation->getRelated();
-        self::assertColumnExists($related, $column, $sortBy);
+
+        if (! self::columnExists($related, $column)) {
+            return self::logInvalidSort($related, $sortBy, 'related_column_not_found', $context, [
+                'column' => $column,
+                'relation' => $relationName,
+            ]);
+        }
+
         $relationQuery = $relation->getRelationExistenceQuery(
             $related->newQuery(),
             $query,
@@ -112,16 +131,31 @@ class EloquentSort
         );
 
         $query->orderBy($relationQuery->limit(1), $direction);
+
+        return true;
     }
 
-    private static function assertColumnExists(Model $model, string $column, string $sortBy): void
+    private static function columnExists(Model $model, string $column): bool
     {
-        if ($model->getConnection()->getSchemaBuilder()->hasColumn($model->getTable(), $column)) {
-            return;
-        }
+        return $model->getConnection()->getSchemaBuilder()->hasColumn($model->getTable(), $column);
+    }
 
-        $modelClass = $model::class;
+    private static function logInvalidSort(
+        Model $model,
+        string $sortBy,
+        string $reason,
+        array $context,
+        array $details = [],
+    ): false {
+        Log::warning('Inertia Data Table ignored an invalid allowed sort.', [
+            ...$context,
+            'model' => $model::class,
+            'table' => $model->getTable(),
+            'sort' => $sortBy,
+            'reason' => $reason,
+            ...$details,
+        ]);
 
-        throw new InvalidArgumentException("The column [{$column}] used by sort [{$sortBy}] does not exist on [{$modelClass}].");
+        return false;
     }
 }

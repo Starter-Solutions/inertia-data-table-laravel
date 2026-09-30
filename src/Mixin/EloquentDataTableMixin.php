@@ -99,7 +99,18 @@ class EloquentDataTableMixin
             if ($sortBy !== null) {
                 $direction = $descending ? 'desc' : 'asc';
                 $sortDefinition = EloquentSort::definition($sortDefinitions, $sortBy);
-                EloquentSort::apply($query, $model, $sortDefinition, $direction, $sortDefinitions !== null);
+                $sortingApplied = EloquentSort::apply(
+                    $query,
+                    $model,
+                    $sortDefinition,
+                    $direction,
+                    $sortDefinitions !== null,
+                    ['table_key' => $tableKey, 'sort_key' => $sortBy],
+                );
+
+                if (! $sortingApplied) {
+                    $sortBy = null;
+                }
             }
 
             // determine pagination parameters

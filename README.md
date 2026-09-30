@@ -29,6 +29,81 @@ Together they provide a structured, reusable approach to building sortable and p
 
 ---
 
+## Sorting by relation columns
+
+Eloquent tables can sort by a column from a directly related model. Declare sortable columns on both models and eager load the relation:
+
+```php
+#[AllowedSorts(['id', 'name'])]
+class User extends Model {}
+
+#[AllowedSorts(['display_name', 'city'])]
+class Profile extends Model {}
+
+$users = User::query()->with('profile')->dataTable('users');
+```
+
+The resolved sort keys are `id`, `name`, `profile.display_name`, and `profile.city`. Nested eager loads are resolved recursively the same way. Relations without an `#[AllowedSorts]` attribute expose no sortable columns. An explicit `allowedSorts` argument still overrides automatic resolution.
+
+Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` can be used when explicitly allowed. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table.
+
+### Accessors and custom sorts
+
+An accessor can be mapped to the database column that represents its sortable value:
+
+```php
+#[AllowedSorts([
+    'id',
+    'display_name' => 'name',
+])]
+class User extends Model {}
+```
+
+The frontend uses `display_name`, while the query orders by `name`. For computed values that need a custom SQL expression, pass a keyed callback:
+
+```php
+User::query()->dataTable(
+    tableKey: 'users',
+    allowedSorts: [
+        'name',
+        'name_length' => fn (Builder $query, string $direction) =>
+            $query->orderByRaw("length(name) {$direction}"),
+    ],
+);
+```
+
+Callbacks must use a string key. The callback key—not its implementation—is exposed through `allowed_sorts`.
+
+PHP attributes cannot contain closures, but they can reference an invokable class implementing `SortCallback`:
+
+```php
+use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
+
+#[AllowedSorts([
+    'name',
+    'name_length' => NameLengthSort::class,
+])]
+class User extends Model {}
+
+final class NameLengthSort implements SortCallback
+{
+    public function __invoke(Builder $query, string $direction): void
+    {
+        $query->orderByRaw("length(name) {$direction}");
+    }
+}
+```
+
+Sort callback classes are resolved through Laravel's container, so they may use constructor injection. A class that does not implement `SortCallback`, or cannot be resolved, is logged and ignored.
+
+Automatic relation sorting supports singular `BelongsTo`, `HasOne`, `HasOneThrough`, and `MorphOne` relations. Multi-value relations such as `HasMany` require a custom sort callback so the desired aggregate or related row is explicit.
+
+`allowed_sorts` preserves three distinct states: `null` means unrestricted base-model columns, `[]` disables sorting, and a non-empty array is an explicit whitelist.
+
+Before applying a regular or relation-column sort, the package verifies that the target exists. Invalid allowed sorts are ignored, `sort_by` is returned as `null`, and a structured warning is logged with the table key, model, table, sort key, and reason. This avoids database-specific SQL failures in production while keeping configuration problems observable.
+
+---
+
 ## 🚀 Installation
 
 ```bash

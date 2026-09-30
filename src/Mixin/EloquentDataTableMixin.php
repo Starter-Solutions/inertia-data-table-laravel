@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
 use StarterSolutions\InertiaDataTable\Attributes\AllowedSorts;
 use StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator;
+use StarterSolutions\InertiaDataTable\Support\EloquentSort;
 
 /**
- * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null, array|null $allowedSorts = null)
+ * @method \StarterSolutions\InertiaDataTable\Pagination\SortableFilterPaginator dataTable(string $tableKey, array|string $columns = [], string|null $pageName = null, \Closure|int|null $total = null, \Closure|null $filterUsing = null, array $additional = [], int|null|\Closure $defaultPerPage = null, int|null $defaultPage = null, string|null $defaultSortBy = null, bool|null $defaultDescending = null, array<int|string, string|\Closure>|null $allowedSorts = null)
  *
  * @mixin Builder
  */
@@ -32,7 +33,7 @@ class EloquentDataTableMixin
          * @param  int|null  $defaultPage
          * @param  string|null  $defaultSortBy
          * @param  bool|null  $defaultDescending
-         * @param  array<string>|null  $allowedSorts
+         * @param  array<int|string, string|\Closure>|null  $allowedSorts
          * @return SortableFilterPaginator
          *
          * @throws \InvalidArgumentException
@@ -59,8 +60,11 @@ class EloquentDataTableMixin
             $model = $query->getModel();
 
             if ($allowedSorts === null) {
-                $allowedSorts = AllowedSorts::resolve($model);
+                $allowedSorts = AllowedSorts::resolveForQuery($query);
             }
+
+            $sortDefinitions = $allowedSorts;
+            $allowedSorts = EloquentSort::keys($sortDefinitions);
 
             $usesQueryState = Request::query($config['table_key_param']) === $tableKey;
             $session = $usesQueryState
@@ -94,7 +98,19 @@ class EloquentDataTableMixin
                     : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
             if ($sortBy !== null) {
                 $direction = $descending ? 'desc' : 'asc';
-                $query->orderBy($sortBy, $direction);
+                $sortDefinition = EloquentSort::definition($sortDefinitions, $sortBy);
+                $sortingApplied = EloquentSort::apply(
+                    $query,
+                    $model,
+                    $sortDefinition,
+                    $direction,
+                    $sortDefinitions !== null,
+                    ['table_key' => $tableKey, 'sort_key' => $sortBy],
+                );
+
+                if (! $sortingApplied) {
+                    $sortBy = null;
+                }
             }
 
             // determine pagination parameters

@@ -60,7 +60,7 @@ class EloquentDataTableMixin
             $model = $query->getModel();
 
             if ($allowedSorts === null) {
-                $allowedSorts = AllowedSorts::resolve($model);
+                $allowedSorts = AllowedSorts::resolveForQuery($query);
             }
 
             $usesQueryState = Request::query($config['table_key_param']) === $tableKey;

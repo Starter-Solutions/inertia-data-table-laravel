@@ -3,6 +3,9 @@
 namespace StarterSolutions\InertiaDataTable\Attributes;
 
 use Attribute;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use ReflectionClass;
 
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -45,5 +48,57 @@ class AllowedSorts
         } while ($reflection = $reflection->getParentClass());
 
         return self::$resolved[$class] = null;
+    }
+
+    /**
+     * Resolve the model's allowed sorts and add the declared sorts of eager
+     * loaded relations using dot notation.
+     *
+     * @return array<string>|null
+     */
+    public static function resolveForQuery(Builder $query): ?array
+    {
+        $columns = self::resolve($query->getModel());
+
+        // A missing root attribute retains the existing unrestricted behavior.
+        if ($columns === null) {
+            return null;
+        }
+
+        foreach (array_keys($query->getEagerLoads()) as $relationPath) {
+            $related = self::relatedModel($query->getModel(), $relationPath);
+            $relatedColumns = self::resolve($related);
+
+            if ($relatedColumns === null) {
+                continue;
+            }
+
+            foreach ($relatedColumns as $column) {
+                $columns[] = "{$relationPath}.{$column}";
+            }
+        }
+
+        return array_values(array_unique($columns));
+    }
+
+    private static function relatedModel(Model $model, string $relationPath): Model
+    {
+        foreach (explode('.', $relationPath) as $relationName) {
+            if (! method_exists($model, $relationName)) {
+                $modelClass = $model::class;
+
+                throw new \InvalidArgumentException("The eager loaded relation [{$relationPath}] does not exist on [{$modelClass}].");
+            }
+
+            $relation = Relation::noConstraints(fn () => $model->{$relationName}());
+
+            if (! $relation instanceof Relation) {
+                throw new \InvalidArgumentException("The eager loaded method [{$relationName}] is not an Eloquent relation.");
+            }
+
+            $model = $relation->getRelated();
+        }
+
+        return $model;
     }
 }

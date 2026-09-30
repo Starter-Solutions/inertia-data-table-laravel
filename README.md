@@ -31,22 +31,21 @@ Together they provide a structured, reusable approach to building sortable and p
 
 ## Sorting by relation columns
 
-Eloquent tables can sort by a column from a directly related model. Eager load the relation and explicitly allow the dot-notated key:
+Eloquent tables can sort by a column from a directly related model. Declare sortable columns on both models and eager load the relation:
 
 ```php
-$users = User::query()
-    ->with('profile')
-    ->dataTable(
-        tableKey: 'users',
-        allowedSorts: [
-            'id',
-            'profile.display_name',
-            'User.profile.display_name',
-        ],
-    );
+#[AllowedSorts(['id', 'name'])]
+class User extends Model {}
+
+#[AllowedSorts(['display_name', 'city'])]
+class Profile extends Model {}
+
+$users = User::query()->with('profile')->dataTable('users');
 ```
 
-Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` are supported. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table. Relation keys must be listed in `allowedSorts` (or the model's `#[AllowedSorts]` attribute).
+The resolved sort keys are `id`, `name`, `profile.display_name`, and `profile.city`. Nested eager loads are resolved the same way. Relations without an `#[AllowedSorts]` attribute expose no sortable columns. An explicit `allowedSorts` argument still overrides automatic resolution.
+
+Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` can be used when explicitly allowed. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table.
 
 ---
 

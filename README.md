@@ -74,6 +74,28 @@ User::query()->dataTable(
 
 Callbacks must use a string key. The callback key—not its implementation—is exposed through `allowed_sorts`.
 
+PHP attributes cannot contain closures, but they can reference an invokable class implementing `SortCallback`:
+
+```php
+use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
+
+#[AllowedSorts([
+    'name',
+    'name_length' => NameLengthSort::class,
+])]
+class User extends Model {}
+
+final class NameLengthSort implements SortCallback
+{
+    public function __invoke(Builder $query, string $direction): void
+    {
+        $query->orderByRaw("length(name) {$direction}");
+    }
+}
+```
+
+Sort callback classes are resolved through Laravel's container, so they may use constructor injection. A class that does not implement `SortCallback`, or cannot be resolved, is logged and ignored.
+
 Before applying a regular or relation-column sort, the package verifies that the target exists. Invalid allowed sorts are ignored, `sort_by` is returned as `null`, and a structured warning is logged with the table key, model, table, sort key, and reason. This avoids database-specific SQL failures in production while keeping configuration problems observable.
 
 ---

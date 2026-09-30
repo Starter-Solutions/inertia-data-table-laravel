@@ -3,10 +3,13 @@
 namespace StarterSolutions\InertiaDataTable\Support;
 
 use Closure;
+use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
+use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
+use Throwable;
 
 class EloquentSort
 {
@@ -66,6 +69,28 @@ class EloquentSort
     ): bool {
         if ($sortBy instanceof Closure) {
             $sortBy($query, $direction);
+
+            return true;
+        }
+
+        if (class_exists($sortBy)) {
+            if (! is_subclass_of($sortBy, SortCallback::class)) {
+                return self::logInvalidSort($model, $sortBy, 'invalid_callback_class', $context, [
+                    'callback' => $sortBy,
+                ]);
+            }
+
+            try {
+                $callback = Container::getInstance()->make($sortBy);
+            } catch (Throwable $exception) {
+                return self::logInvalidSort($model, $sortBy, 'callback_resolution_failed', $context, [
+                    'callback' => $sortBy,
+                    'exception' => $exception::class,
+                    'exception_message' => $exception->getMessage(),
+                ]);
+            }
+
+            $callback($query, $direction);
 
             return true;
         }
@@ -151,7 +176,7 @@ class EloquentSort
             ...$context,
             'model' => $model::class,
             'table' => $model->getTable(),
-            'sort' => $sortBy,
+            'sort' => $context['sort_key'] ?? $sortBy,
             'reason' => $reason,
             ...$details,
         ]);

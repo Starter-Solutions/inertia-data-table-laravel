@@ -1,65 +1,167 @@
 # starter-solutions/inertia-data-table
 
-> ⚠️ This is the **Laravel backend package** for  
-> **@starter-solutions/inertia-data-table-vue (Vue 3 + Inertia companion package)**.
->
-> If you are looking for the frontend package, visit:  
-> 👉 https://github.com/starter-solutions/inertia-data-table-vue
+Laravel backend for server-driven data tables with Inertia.js. It adds a `dataTable()` macro to Eloquent builders, query builders, and collections and works with [`@starter-solutions/inertia-data-table-vue`](https://github.com/starter-solutions/inertia-data-table-vue).
 
----
+## Features
 
-## 📦 Overview
+- Pagination, filtering, and sorting owned by the backend
+- Independent state for multiple tables through table keys
+- URL-query or session-backed table state
+- Sort whitelists declared on models
+- Recursive sorting through singular Eloquent relations
+- Sort aliases for accessors
+- Inline callbacks and container-resolved sort classes
+- Flat paginator and Laravel `JsonResource` responses
 
-`starter-solutions/inertia-data-table` provides a clean and consistent way to handle:
+## Installation
 
-- Server-driven pagination
-- Sorting
-- Query parameter management
-- Multiple independent tables per page
-- Inertia-powered table state synchronization
-
-It extends Laravel’s query builder with a data-table macro that integrates seamlessly with Inertia.js and Vue 3.
-
-This package is designed to work together with:
-
-**Frontend (Vue 3 + Inertia):**  
-https://github.com/starter-solutions/inertia-data-table-vue
-
-Together they provide a structured, reusable approach to building sortable and paginated data tables in Laravel + Inertia applications.
-
----
-
-## Sorting by relation columns
-
-Eloquent tables can sort by a column from a directly related model. Declare sortable columns on both models and eager load the relation:
-
-```php
-#[AllowedSorts(['id', 'name'])]
-class User extends Model {}
-
-#[AllowedSorts(['display_name', 'city'])]
-class Profile extends Model {}
-
-$users = User::query()->with('profile')->dataTable('users');
+```bash
+composer require starter-solutions/inertia-data-table
 ```
 
-The resolved sort keys are `id`, `name`, `profile.display_name`, and `profile.city`. Nested eager loads are resolved recursively the same way. Relations without an `#[AllowedSorts]` attribute expose no sortable columns. An explicit `allowedSorts` argument still overrides automatic resolution.
+Laravel discovers the service provider automatically. To customize parameter names, middleware, or defaults, publish the configuration:
 
-Both `profile.display_name` and the optional model-qualified form `User.profile.display_name` can be used when explicitly allowed. Relation sorts use a correlated subquery, so they do not duplicate rows in the base table.
+```bash
+php artisan vendor:publish --tag=inertia-data-table-config
+```
 
-### Accessors and custom sorts
+## Quick start
 
-An accessor can be mapped to the database column that represents its sortable value:
+Declare the columns the frontend may sort by:
 
 ```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use StarterSolutions\InertiaDataTable\Attributes\AllowedSorts;
+
+#[AllowedSorts(['id', 'name', 'email', 'created_at'])]
+class User extends Model
+{
+}
+```
+
+Return the paginator as an Inertia prop:
+
+```php
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+Route::get('/users', function () {
+    return Inertia::render('Users/Index', [
+        'users' => User::query()->dataTable(
+            tableKey: 'users',
+            filterUsing: function (Builder $query, array $filter): void {
+                $search = trim((string) ($filter['search'] ?? ''));
+
+                if ($search !== '') {
+                    $query->where(function (Builder $query) use ($search): void {
+                        $query
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+                }
+            },
+            defaultPerPage: 25,
+            defaultSortBy: 'name',
+            defaultDescending: false,
+        ),
+    ]);
+});
+```
+
+The `tableKey` must match the key passed to the Vue `useDataTable()` composable.
+
+## Allowed sorts
+
+`allowed_sorts` has three distinct states:
+
+- `null`: any base-model column may be sorted
+- `[]`: sorting is disabled
+- `['id', 'name']`: only the listed public keys are accepted
+
+Prefer an explicit `#[AllowedSorts]` attribute in production:
+
+```php
+#[AllowedSorts(['id', 'name', 'email'])]
+class User extends Model
+{
+}
+```
+
+You can override the model attribute for one table:
+
+```php
+User::query()->dataTable(
+    tableKey: 'users',
+    allowedSorts: ['id', 'name'],
+);
+```
+
+Invalid configured columns or relation paths are ignored and logged as structured warnings. The response reports `sort_by: null` when a requested sort could not be applied.
+
+## Sorting related models
+
+Sortable fields are resolved automatically from eager-loaded models:
+
+```php
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use StarterSolutions\InertiaDataTable\Attributes\AllowedSorts;
+
+#[AllowedSorts(['id', 'title', 'author_id'])]
+class Post extends Model
+{
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+}
+
+#[AllowedSorts(['name', 'email'])]
+class User extends Model
+{
+}
+
+$posts = Post::query()
+    ->with('author')
+    ->dataTable('posts');
+```
+
+The resolved public keys include `author.name` and `author.email`. Nested eager loads such as `author.profile.company.name` are resolved recursively.
+
+Automatic relation sorting supports singular `BelongsTo`, `HasOne`, `HasOneThrough`, and `MorphOne` relations. A multi-value relation such as `HasMany` needs a custom sort callback so the aggregate or selected row is explicit.
+
+## Sorting accessors and aliases
+
+Map an accessor's public key to its backing database column:
+
+```php
+use Illuminate\Database\Eloquent\Casts\Attribute;
+
 #[AllowedSorts([
     'id',
     'display_name' => 'name',
 ])]
-class User extends Model {}
+class User extends Model
+{
+    protected $appends = ['display_name'];
+
+    protected function displayName(): Attribute
+    {
+        return Attribute::get(fn (): string => strtoupper($this->name));
+    }
+}
 ```
 
-The frontend uses `display_name`, while the query orders by `name`. For computed values that need a custom SQL expression, pass a keyed callback:
+The frontend uses `display_name`; SQL orders by `name`.
+
+## Custom sort callbacks
+
+For one-off SQL expressions, pass a keyed closure:
 
 ```php
 User::query()->dataTable(
@@ -72,18 +174,11 @@ User::query()->dataTable(
 );
 ```
 
-Callbacks must use a string key. The callback key—not its implementation—is exposed through `allowed_sorts`.
-
-PHP attributes cannot contain closures, but they can reference an invokable class implementing `SortCallback`:
+PHP attributes cannot contain closures. Use an invokable class for reusable or attribute-based custom sorts:
 
 ```php
+use Illuminate\Database\Eloquent\Builder;
 use StarterSolutions\InertiaDataTable\Contracts\SortCallback;
-
-#[AllowedSorts([
-    'name',
-    'name_length' => NameLengthSort::class,
-])]
-class User extends Model {}
 
 final class NameLengthSort implements SortCallback
 {
@@ -94,55 +189,104 @@ final class NameLengthSort implements SortCallback
 }
 ```
 
-Sort callback classes are resolved through Laravel's container, so they may use constructor injection. A class that does not implement `SortCallback`, or cannot be resolved, is logged and ignored.
-
-Automatic relation sorting supports singular `BelongsTo`, `HasOne`, `HasOneThrough`, and `MorphOne` relations. Multi-value relations such as `HasMany` require a custom sort callback so the desired aggregate or related row is explicit.
-
-`allowed_sorts` preserves three distinct states: `null` means unrestricted base-model columns, `[]` disables sorting, and a non-empty array is an explicit whitelist.
-
-Before applying a regular or relation-column sort, the package verifies that the target exists. Invalid allowed sorts are ignored, `sort_by` is returned as `null`, and a structured warning is logged with the table key, model, table, sort key, and reason. This avoids database-specific SQL failures in production while keeping configuration problems observable.
-
----
-
-## 🚀 Installation
-
-```bash
-composer require starter-solutions/inertia-data-table
+```php
+#[AllowedSorts([
+    'name',
+    'name_length' => NameLengthSort::class,
+])]
+class User extends Model
+{
+}
 ```
 
-## 🧠 Concept
+Sort classes are resolved through Laravel's container and may use constructor injection. Callback sorts must have a public string key.
 
-The package introduces a table key–based system:
+## Filtering and additional metadata
 
-- Each table has a unique identifier.
-- Pagination and sorting state are scoped to that identifier.
-- Multiple tables can exist on the same Inertia page without conflicts.
-- The backend remains the single source of truth for data ordering and limits.
+The filter callback receives the active filter values. Extra values can be returned beside the pagination metadata:
 
-This approach keeps controllers clean while maintaining predictable frontend behavior.
+```php
+User::query()->dataTable(
+    tableKey: 'users',
+    filterUsing: fn (Builder $query, array $filter) => $query
+        ->when($filter['status'] ?? null, fn (Builder $query, string $status) =>
+            $query->where('status', $status)),
+    additional: [
+        'filters' => [
+            'statuses' => ['active', 'invited', 'disabled'],
+        ],
+    ],
+);
+```
 
----
+Vue can read this with `additional` or `getAdditional('filters.statuses', [])`.
 
-## 🎯 Goals
+## Query builders and collections
 
-- Provide a Laravel-native API similar to `->paginate()`
-- Avoid manual query string management
-- Support multiple tables on one page
-- Keep pagination logic centralized
-- Maintain full compatibility with Inertia.js
+The macro is also available on the database query builder:
 
----
+```php
+$users = DB::table('users')->dataTable(
+    tableKey: 'users',
+    allowedSorts: ['id', 'name', 'email'],
+);
+```
 
-## 🐛 Issues & Support
+Collections are filtered, sorted, and paginated in memory. Dot notation works for nested values:
 
-Bug reports and feature requests are welcome.
+```php
+$users = collect($items)->dataTable(
+    tableKey: 'users',
+    allowedSorts: ['name', 'profile.city'],
+);
+```
 
-Please open an issue in this repository:
+Relation discovery, accessor aliases, and `SortCallback` classes apply only to Eloquent builders.
 
-👉 https://github.com/starter-solutions/inertia-data-table/issues
+## Multiple tables
 
----
+Use a unique table key and prop for each table:
 
-## 📄 License
+```php
+return Inertia::render('Dashboard', [
+    'users' => User::query()->dataTable('users'),
+    'orders' => Order::query()->dataTable('orders'),
+]);
+```
+
+Only the table identified by the request's `tableKey` consumes URL query state. Other tables use their independent session state.
+
+## JsonResource wrapping
+
+Both flat paginator data and Laravel resource collections are supported by the Vue package:
+
+```php
+'users' => UserResource::collection(
+    User::query()->dataTable('users')
+),
+```
+
+## Configuration
+
+Published `config/inertia-data-table.php` options include:
+
+```php
+return [
+    'session_routes_middleware' => ['web'],
+    'table_key_param' => 'tableKey',
+    'per_page_param' => 'per_page',
+    'sort_by_param' => 'sort_by',
+    'descending_param' => 'descending',
+    'page_name_param' => 'page',
+    'filter_param' => 'filter',
+    'default_per_page' => 15,
+    'default_sort_by' => 'id',
+    'default_decending' => true,
+];
+```
+
+`default_decending` retains its historical spelling for compatibility.
+
+## License
 
 MIT © Starter Solutions

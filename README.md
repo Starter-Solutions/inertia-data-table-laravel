@@ -281,11 +281,9 @@ return [
     'filter_param' => 'filter',
     'default_per_page' => 15,
     'default_sort_by' => 'id',
-    'default_decending' => true,
+    'default_descending' => true,
 ];
 ```
-
-`default_decending` retains its historical spelling for compatibility.
 
 ## License
 

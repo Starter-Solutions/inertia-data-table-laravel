@@ -19,12 +19,12 @@ return [
     | The request parameters that control pagination, sorting, and filtering.
     |
     */
-    'table_key_param'   => 'tableKey',
-    'per_page_param'    => 'per_page',
-    'sort_by_param'     => 'sort_by',
-    'descending_param'  => 'descending',
-    'page_name_param'   => 'page',
-    'filter_param'      => 'filter',
+    'table_key_param' => 'tableKey',
+    'per_page_param' => 'per_page',
+    'sort_by_param' => 'sort_by',
+    'descending_param' => 'descending',
+    'page_name_param' => 'page',
+    'filter_param' => 'filter',
 
     /*
     |--------------------------------------------------------------------------
@@ -34,7 +34,7 @@ return [
     | Fallbacks when no query parameters are present.
     |
     */
-    'default_per_page'  => 15,
-    'default_sort_by'   => 'id',
-    'default_decending' => true,
+    'default_per_page' => 15,
+    'default_sort_by' => 'id',
+    'default_descending' => true,
 ];

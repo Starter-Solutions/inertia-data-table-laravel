@@ -43,7 +43,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
         Inertia::share('inertiaDataTable', function () {
             return [
                 'stateRoutes' => [
-                    'set'   => route('inertia-data-table.set'),
+                    'set' => route('inertia-data-table.set'),
                     'drop' => route('inertia-data-table.drop'),
                     'dropAll' => route('inertia-data-table.drop.all'),
                 ],
@@ -58,7 +58,7 @@ class InertiaDataTableServiceProvider extends ServiceProvider
                 'defaults' => [
                     'perPage' => config('inertia-data-table.default_per_page', 15),
                     'sortBy' => config('inertia-data-table.default_sort_by', 'id'),
-                    'descending' => config('inertia-data-table.default_decending', true),
+                    'descending' => config('inertia-data-table.default_descending', true),
                 ],
             ];
         });
@@ -66,8 +66,8 @@ class InertiaDataTableServiceProvider extends ServiceProvider
 
     private function registerMixins(): void
     {
-        EloquentBuilder::mixin(new EloquentDataTableMixin());
-        QueryBuilder::mixin(new QueryDataTableMixin());
-        Collection::mixin(new CollectionDataTableMixin());
+        EloquentBuilder::mixin(new EloquentDataTableMixin);
+        QueryBuilder::mixin(new QueryDataTableMixin);
+        Collection::mixin(new CollectionDataTableMixin);
     }
 }

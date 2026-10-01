@@ -95,7 +95,7 @@ class EloquentDataTableMixin
             }
             $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
-                    : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
+                    : ($session['descending'] ?? $defaultDescending ?? $config['default_descending']);
             if ($sortBy !== null) {
                 $direction = $descending ? 'desc' : 'asc';
                 $sortDefinition = EloquentSort::definition($sortDefinitions, $sortBy);

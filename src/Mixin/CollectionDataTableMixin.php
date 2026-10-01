@@ -85,7 +85,7 @@ class CollectionDataTableMixin
             }
             $descending = ($usesQueryState && Request::has($config['descending_param']))
                     ? Request::boolean($config['descending_param'])
-                    : ($session['descending'] ?? $defaultDescending ?? $config['default_decending']);
+                    : ($session['descending'] ?? $defaultDescending ?? $config['default_descending']);
 
             if ($sortBy !== null) {
                 $items = ($descending ? $items->sortByDesc($sortBy) : $items->sortBy($sortBy))->values();
